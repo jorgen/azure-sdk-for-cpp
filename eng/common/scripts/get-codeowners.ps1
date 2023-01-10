@@ -1,12 +1,59 @@
+<#
+.SYNOPSIS
+A script that given as input $TargetPath param, returns the owners
+of that path, as determined by CODEOWNERS file passed in $CodeOwnersFileLocation
+param.
+
+.PARAMETER TargetPath
+Path to file or directory whose owners are to be determined from a 
+CODEOWNERS file. e.g. sdk/core/azure-amqp/ or sdk/core/foo.txt.
+
+.PARAMETER TargetDirectory
+Obsolete. Replaced by $TargetPath. Kept for backward-compatibility.
+If both $TargetPath and $TargetDirectory are provided, $TargetDirectory is
+ignored.
+
+.PARAMETER ToolVersion
+The NuGet package version of the package containing the "retrieve-codeowners" 
+tool, around which this script is a wrapper.
+
+.PARAMETER ToolPath
+The place to check the "retrieve-codeowners" tool existence.
+
+.PARAMETER DevOpsFeed
+The NuGet package feed from which the "retrieve-codeowners" tool is to be installed.
+
+NuGet feed:
+https://dev.azure.com/azure-sdk/public/_artifacts/feed/azure-sdk-for-net/NuGet/Azure.Sdk.Tools.RetrieveCodeOwners
+
+Pipeline publishing the NuGet package to the feed, "tools - code-owners-parser":
+https://dev.azure.com/azure-sdk/internal/_build?definitionId=3188
+
+.PARAMETER VsoVariable 
+Optional. If provided, the determined CODEOWNERS will be output to Azure DevOps pipeline log
+as variable named $VsoVariable.
+
+Reference:
+https://learn.microsoft.com/en-us/azure/devops/pipelines/process/variables?view=azure-devops&tabs=yaml%2Cbatch
+https://learn.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=bash#logging-command-format
+
+.PARAMETER IncludeNonUserAliases
+Optional. Whether to include in the returned owners list aliases that are team aliases, e.g. Azure/azure-sdk-team
+
+.PARAMETER Test
+Optional. Whether to run the script against hard-coded tests.
+
+#>
 param (
-  [string]$TargetDirectory = "", # Code path to code owners. e.g sdk/core/azure-amqp
+  [string]$TargetPath = "",
+  [string]$TargetDirectory = "",
   [string]$CodeOwnerFileLocation = (Resolve-Path $PSScriptRoot/../../../.github/CODEOWNERS), # The absolute path of CODEOWNERS file. 
   [string]$ToolVersion = "1.0.0-dev.20230108.6", 
   [string]$ToolPath = (Join-Path ([System.IO.Path]::GetTempPath()) "codeowners-tool-path"), # The place to check the tool existence. Put temp path as default
   [string]$DevOpsFeed = "https://pkgs.dev.azure.com/azure-sdk/public/_packaging/azure-sdk-for-net/nuget/v3/index.json", # DevOp tool feeds.
-  [string]$VsoVariable = "", # Option of write code owners into devop variable
-  [switch]$IncludeNonUserAliases, # Option to filter out the team alias in code owner list. e.g. Azure/azure-sdk-team
-  [switch]$Test  #Run test functions against the script logic
+  [string]$VsoVariable = "",
+  [switch]$IncludeNonUserAliases,
+  [switch]$Test
 )
 
 function Get-CodeOwnersTool()
@@ -34,11 +81,11 @@ function Get-CodeOwnersTool()
   return $command
 }
 
-function Get-CodeOwners ([string]$targetDirectory, [string]$codeOwnerFileLocation, [bool]$includeNonUserAliases = $false)
+function Get-CodeOwners([string]$targetDirectory, [string]$codeOwnerFileLocation, [bool]$includeNonUserAliases = $false)
 {
   $command = Get-CodeOwnersTool
-  # Filter out the non user alias from code owner list.
-  if($includeNonUserAliases) {
+  # Filter out the non-user alias from code owner list.
+  if ($includeNonUserAliases) {
     $codeOwnersString = & $command --target-directory $targetDirectory --code-owner-file-path $codeOwnerFileLocation 2>&1
   }
   else {
@@ -80,7 +127,7 @@ function TestGetCodeOwner([string]$targetDirectory, [string]$codeOwnerFileLocati
   }
 }
 
-if($Test) {
+if ($Test) {
   $testFile = (Resolve-Path $PSScriptRoot/../../../tools/code-owners-parser/Azure.Sdk.Tools.RetrieveCodeOwners.Tests/CODEOWNERS)
   TestGetCodeOwner -targetDirectory "sdk" -codeOwnerFileLocation $testFile -includeNonUserAliases $true -expectReturn @("person1", "person2")
   TestGetCodeOwner -targetDirectory "sdk/noPath" -codeOwnerFileLocation $testFile -includeNonUserAliases $true -expectReturn @("person1", "person2")

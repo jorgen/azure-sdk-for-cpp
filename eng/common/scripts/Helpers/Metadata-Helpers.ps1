@@ -70,7 +70,7 @@ function GetAllGithubUsers ([string]$TenantId, [string]$ClientId, [string]$Clien
     return $resp
 }
 
-function GetPrimaryCodeOwner ([string]$TargetDirectory)
+function GetPrimaryCodeOwner([string]$TargetDirectory)
 {
     $codeOwnerArray = &"$PSScriptRoot/../get-codeowners.ps1" -TargetDirectory $TargetDirectory
     if ($codeOwnerArray) {

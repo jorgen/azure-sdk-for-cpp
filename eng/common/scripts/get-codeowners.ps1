@@ -16,7 +16,7 @@ If both $TargetPath and $TargetDirectory are provided, $TargetDirectory is
 ignored.
 
 .PARAMETER CodeOwnerFileLocation
-Optional. Path to the CODEOWNERS file against which the $TargetPath param
+Optional. An absolute path to the CODEOWNERS file against which the $TargetPath param
 will be checked to determine its owners.
 
 .PARAMETER ToolVersion
@@ -53,10 +53,10 @@ Optional. Whether to run the script against hard-coded tests.
 param (
   [string]$TargetPath = "",
   [string]$TargetDirectory = "",
-  [string]$CodeOwnerFileLocation = (Resolve-Path $PSScriptRoot/../../../.github/CODEOWNERS), # The absolute path of CODEOWNERS file. 
-  [string]$ToolVersion = "1.0.0-dev.20230108.6", 
-  [string]$ToolPath = (Join-Path ([System.IO.Path]::GetTempPath()) "codeowners-tool-path"), # The place to check the tool existence. Put temp path as default
-  [string]$DevOpsFeed = "https://pkgs.dev.azure.com/azure-sdk/public/_packaging/azure-sdk-for-net/nuget/v3/index.json", # DevOp tool feeds.
+  [string]$CodeOwnerFileLocation = (Resolve-Path $PSScriptRoot/../../../.github/CODEOWNERS),
+  [string]$ToolVersion = "1.0.0-dev.20230108.6", # kja-TODO: update this to point to the version that supports --target-path
+  [string]$ToolPath = (Join-Path ([System.IO.Path]::GetTempPath()) "codeowners-tool-path"),
+  [string]$DevOpsFeed = "https://pkgs.dev.azure.com/azure-sdk/public/_packaging/azure-sdk-for-net/nuget/v3/index.json",
   [string]$VsoVariable = "",
   [switch]$IncludeNonUserAliases,
   [switch]$Test
@@ -65,7 +65,7 @@ param (
 function Get-CodeOwnersTool()
 {
   $command = Join-Path $ToolPath "retrieve-codeowners"
-  # Check if the retrieve-codeowners tool exsits or not.
+  # Check if the retrieve-codeowners tool exists or not.
   if (Get-Command $command -errorAction SilentlyContinue) {
     return $command
   }
@@ -97,7 +97,8 @@ function Get-CodeOwners(
     $targetPath = $targetDirectory
   }
   if ([string]::IsNullOrWhiteSpace($targetPath)) {
-    throw "targetPath parameter must be not null or whitespace."
+    Write-Error "TargetPath parameter must be neither null nor whitespace."
+    return ,@()
   }
 
   $command = Get-CodeOwnersTool

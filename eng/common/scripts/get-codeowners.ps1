@@ -54,7 +54,8 @@ param (
   [string]$TargetPath = "",
   [string]$TargetDirectory = "",
   [string]$CodeOwnerFileLocation = (Resolve-Path $PSScriptRoot/../../../.github/CODEOWNERS),
-  [string]$ToolVersion = "1.0.0-dev.20230108.6", # kja-TODO: update this to point to the version that supports --target-path
+  # kja-TODO: update the value to point to the version that supports --target-path and other new params.
+  [string]$ToolVersion = "1.0.0-dev.20230108.6",
   [string]$ToolPath = (Join-Path ([System.IO.Path]::GetTempPath()) "codeowners-tool-path"),
   [string]$DevOpsFeed = "https://pkgs.dev.azure.com/azure-sdk/public/_packaging/azure-sdk-for-net/nuget/v3/index.json",
   [string]$VsoVariable = "",
@@ -102,13 +103,8 @@ function Get-CodeOwners(
   }
 
   $command = Get-CodeOwnersTool
-  # Filter out the non-user alias from code owner list.
-  if ($includeNonUserAliases) {
-    $codeOwnersString = & $command --target-path $targetPath --code-owner-file-path $codeOwnerFileLocation 2>&1
-  }
-  else {
-    $codeOwnersString = & $command --target-path $targetPath --code-owner-file-path $codeOwnerFileLocation --filter-out-non-user-aliases 2>&1
-  }
+  $codeOwnersString = & $command --target-path $targetPath --codeowners-file-path $codeOwnerFileLocation --exclude-non-user-aliases:$(!$includeNonUserAliases)  2>&1
+
   # Failed at the command of fetching code owners.
   if ($LASTEXITCODE -ne 0) {
     Write-Host $codeOwnersString
@@ -129,7 +125,7 @@ function Get-CodeOwners(
   return ,@($codeOwnersJson.Owners)
 }
 
-function TestGetCodeOwner([string]$targetDirectory, [string]$codeOwnerFileLocation, [bool]$includeNonUserAliases = $false, [string[]]$expectReturn) {
+function TestGetCodeOwners([string]$targetDirectory, [string]$codeOwnerFileLocation, [bool]$includeNonUserAliases = $false, [string[]]$expectReturn) {
   Write-Host "Testing on $targetDirectory..."
   $actualReturn = Get-CodeOwners -targetDirectory $targetDirectory -codeOwnerFileLocation $codeOwnerFileLocation -includeNonUserAliases $IncludeNonUserAliases
 
@@ -147,12 +143,12 @@ function TestGetCodeOwner([string]$targetDirectory, [string]$codeOwnerFileLocati
 
 if ($Test) {
   $testFile = (Resolve-Path $PSScriptRoot/../../../tools/code-owners-parser/Azure.Sdk.Tools.RetrieveCodeOwners.Tests/CODEOWNERS)
-  TestGetCodeOwner -targetDirectory "sdk" -codeOwnerFileLocation $testFile -includeNonUserAliases $true -expectReturn @("person1", "person2")
-  TestGetCodeOwner -targetDirectory "sdk/noPath" -codeOwnerFileLocation $testFile -includeNonUserAliases $true -expectReturn @("person1", "person2")
-  TestGetCodeOwner -targetDirectory "/sdk/azconfig" -codeOwnerFileLocation $testFile -includeNonUserAliases $true -expectReturn @("person3", "person4")
-  TestGetCodeOwner -targetDirectory "/sdk/azconfig/package" -codeOwnerFileLocation $testFile -includeNonUserAliases $true  $testFile -expectReturn @("person3", "person4")
-  TestGetCodeOwner -targetDirectory "/sd" -codeOwnerFileLocation $testFile -includeNonUserAliases $true  -expectReturn @()
-  TestGetCodeOwner -targetDirectory "/sdk/testUser/" -codeOwnerFileLocation $testFile -expectReturn @("azure-sdk") 
+  TestGetCodeOwners -targetDirectory "sdk" -codeOwnerFileLocation $testFile -includeNonUserAliases $true -expectReturn @("person1", "person2")
+  TestGetCodeOwners -targetDirectory "sdk/noPath" -codeOwnerFileLocation $testFile -includeNonUserAliases $true -expectReturn @("person1", "person2")
+  TestGetCodeOwners -targetDirectory "/sdk/azconfig" -codeOwnerFileLocation $testFile -includeNonUserAliases $true -expectReturn @("person3", "person4")
+  TestGetCodeOwners -targetDirectory "/sdk/azconfig/package" -codeOwnerFileLocation $testFile -includeNonUserAliases $true  $testFile -expectReturn @("person3", "person4")
+  TestGetCodeOwners -targetDirectory "/sd" -codeOwnerFileLocation $testFile -includeNonUserAliases $true  -expectReturn @()
+  TestGetCodeOwners -targetDirectory "/sdk/testUser/" -codeOwnerFileLocation $testFile -expectReturn @("azure-sdk") 
   exit 0
 }
 else {

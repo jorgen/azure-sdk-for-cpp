@@ -81,15 +81,26 @@ function Get-CodeOwnersTool()
   return $command
 }
 
-function Get-CodeOwners([string]$targetDirectory, [string]$codeOwnerFileLocation, [bool]$includeNonUserAliases = $false)
+function Get-CodeOwners(
+  [string]$targetPath,
+  [string]$targetDirectory,
+  [string]$codeOwnerFileLocation,
+  [bool]$includeNonUserAliases = $false)
 {
+  if ([string]::IsNullOrWhiteSpace($targetPath)) {
+    $targetPath = $targetDirectory
+  }
+  if ([string]::IsNullOrWhiteSpace($targetPath)) {
+    throw "targetPath parameter must be not null or whitespace."
+  }
+
   $command = Get-CodeOwnersTool
   # Filter out the non-user alias from code owner list.
   if ($includeNonUserAliases) {
-    $codeOwnersString = & $command --target-directory $targetDirectory --code-owner-file-path $codeOwnerFileLocation 2>&1
+    $codeOwnersString = & $command --target-path $targetPath --code-owner-file-path $codeOwnerFileLocation 2>&1
   }
   else {
-    $codeOwnersString = & $command --target-directory $targetDirectory --code-owner-file-path $codeOwnerFileLocation --filter-out-non-user-aliases 2>&1
+    $codeOwnersString = & $command --target-path $targetPath --code-owner-file-path $codeOwnerFileLocation --filter-out-non-user-aliases 2>&1
   }
   # Failed at the command of fetching code owners.
   if ($LASTEXITCODE -ne 0) {
@@ -99,7 +110,7 @@ function Get-CodeOwners([string]$targetDirectory, [string]$codeOwnerFileLocation
   
   $codeOwnersJson = $codeOwnersString | ConvertFrom-Json
   if (!$codeOwnersJson) {
-    Write-Host "No code owners returned from the path: $targetDirectory"
+    Write-Host "No code owners returned from the path: $targetPath"
     return ,@()
   }
   
@@ -138,5 +149,5 @@ if ($Test) {
   exit 0
 }
 else {
-  return Get-CodeOwners -targetDirectory $TargetDirectory -codeOwnerFileLocation $CodeOwnerFileLocation -includeNonUserAliases $IncludeNonUserAliases
+  return Get-CodeOwners -targetPath $TargetPath -targetDirectory $TargetDirectory -codeOwnerFileLocation $CodeOwnerFileLocation -includeNonUserAliases $IncludeNonUserAliases
 }

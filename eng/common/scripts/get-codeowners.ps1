@@ -5,23 +5,29 @@ of that path, as determined by CODEOWNERS file passed in $CodeOwnersFileLocation
 param.
 
 .PARAMETER TargetPath
-Path to file or directory whose owners are to be determined from a 
+Required*. Path to file or directory whose owners are to be determined from a 
 CODEOWNERS file. e.g. sdk/core/azure-amqp/ or sdk/core/foo.txt.
+
+*for backward compatibility, you might provide $TargetDirectory instead.
 
 .PARAMETER TargetDirectory
 Obsolete. Replaced by $TargetPath. Kept for backward-compatibility.
 If both $TargetPath and $TargetDirectory are provided, $TargetDirectory is
 ignored.
 
+.PARAMETER CodeOwnerFileLocation
+Optional. Path to the CODEOWNERS file against which the $TargetPath param
+will be checked to determine its owners.
+
 .PARAMETER ToolVersion
-The NuGet package version of the package containing the "retrieve-codeowners" 
+Optional. The NuGet package version of the package containing the "retrieve-codeowners" 
 tool, around which this script is a wrapper.
 
 .PARAMETER ToolPath
-The place to check the "retrieve-codeowners" tool existence.
+Optional. The place to check the "retrieve-codeowners" tool existence.
 
 .PARAMETER DevOpsFeed
-The NuGet package feed from which the "retrieve-codeowners" tool is to be installed.
+Optional. The NuGet package feed from which the "retrieve-codeowners" tool is to be installed.
 
 NuGet feed:
 https://dev.azure.com/azure-sdk/public/_artifacts/feed/azure-sdk-for-net/NuGet/Azure.Sdk.Tools.RetrieveCodeOwners
